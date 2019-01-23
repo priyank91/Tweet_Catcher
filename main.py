@@ -1,4 +1,14 @@
 import tweepy 
+import json
+from bson import json_util # to install bson install pymongo [https://stackoverflow.com/questions/35254975/import-error-no-module-named-bson]
+import logging as log
+
+log.basicConfig(
+       filename="collection.log",
+       level=log.INFO,
+       format="%(asctime)s:%(levelname)s:%(message)s"
+       )
+
 
 # Fill the Developer's credentials obtained by tweeter  
 '''
@@ -7,6 +17,29 @@ consumer_secret = "XXXXXXXXXXXXX"
 access_key = "XXXXXXXXXXXXX"
 access_secret = "XXXXXXXXXXXXXXX"
 '''
+def stream_tweet_catcher():
+	class StreamListener(tweepy.StreamListener):
+	    def on_connect(self):
+		log.info("Connected to the streaming API")
+
+	    def on_error(self, status_code):
+		log.info("An error occured, error code is below:\n{}".format(repr(status_code)))
+
+	    def on_status(self,status):
+		try:
+		    with open('streamlistener.json', 'a') as f:
+			obj = json.dumps(status._json, ensure_ascii=False)
+			obj = json.loads(obj)
+			if obj['lang']=='en':
+			    f.write(json_util.dumps(obj)+'\n')
+		except:
+		    pass
+	auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+	auth.set_access_token(access_key, access_secret)
+	listener = StreamListener(api=tweepy.API(wait_on_rate_limit=True, wait_on_rate_limit_notify=True))
+	streamer = tweepy.Stream(auth=auth, listener=listener,tweet_mode='extended')
+	log.info('Twitter SAMPLE API')
+	streamer.sample()
 
 # Function to extract FULL Length of tweets and retweets
 def get_tweets_by_username(username):
@@ -72,4 +105,5 @@ if __name__ == '__main__':
   
     # Put screen_name of the user... arora_priyank
     get_tweets_by_username("arora_priyank")
+    stream_tweet_catcher()
 
